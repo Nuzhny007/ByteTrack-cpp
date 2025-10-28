@@ -22,7 +22,7 @@ public:
                 const float& track_thresh = 0.5,
                 const float& high_thresh = 0.6,
                 const float& match_thresh = 0.8);
-    ~BYTETracker();
+    ~BYTETracker() = default;
 
     std::vector<STrackPtr> update(const std::vector<Object>& objects);
 
@@ -60,13 +60,13 @@ private:
                      bool return_cost = true) const;
 
 private:
-    const float track_thresh_;
-    const float high_thresh_;
-    const float match_thresh_;
-    const size_t max_time_lost_;
+    const float track_thresh_ = 0.5f;
+    const float high_thresh_ = 0.6f;
+    const float match_thresh_ = 0.8f;
+    const size_t max_time_lost_ = 30;
 
-    size_t frame_id_;
-    size_t track_id_count_;
+    size_t frame_id_ = 0;
+    size_t track_id_count_ = 0;
 
     std::vector<STrackPtr> tracked_stracks_;
     std::vector<STrackPtr> lost_stracks_;

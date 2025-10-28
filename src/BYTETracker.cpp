@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+///
 byte_track::BYTETracker::BYTETracker(const int& frame_rate,
                                      const int& track_buffer,
                                      const float& track_thresh,
@@ -22,10 +23,7 @@ byte_track::BYTETracker::BYTETracker(const int& frame_rate,
 {
 }
 
-byte_track::BYTETracker::~BYTETracker()
-{
-}
-
+///
 std::vector<byte_track::BYTETracker::STrackPtr> byte_track::BYTETracker::update(const std::vector<Object>& objects)
 {
     ////////////////// Step 1: Get detections //////////////////
@@ -39,13 +37,9 @@ std::vector<byte_track::BYTETracker::STrackPtr> byte_track::BYTETracker::update(
     {
         const auto strack = std::make_shared<STrack>(object.rect, object.prob);
         if (object.prob >= track_thresh_)
-        {
             det_stracks.push_back(strack);
-        }
         else
-        {
             det_low_stracks.push_back(strack);
-        }
     }
 
     // Create lists of existing STrack
@@ -56,13 +50,9 @@ std::vector<byte_track::BYTETracker::STrackPtr> byte_track::BYTETracker::update(
     for (const auto& tracked_strack : tracked_stracks_)
     {
         if (!tracked_strack->isActivated())
-        {
             non_active_stracks.push_back(tracked_strack);
-        }
         else
-        {
             active_stracks.push_back(tracked_strack);
-        }
     }
 
     strack_pool = jointStracks(active_stracks, lost_stracks_);
@@ -111,9 +101,7 @@ std::vector<byte_track::BYTETracker::STrackPtr> byte_track::BYTETracker::update(
         for (const auto &unmatch_idx : unmatch_track_idx)
         {
             if (strack_pool[unmatch_idx]->getSTrackState() == STrackState::Tracked)
-            {
                 remain_tracked_stracks.push_back(strack_pool[unmatch_idx]);
-            }
         }
     }
 
@@ -186,9 +174,8 @@ std::vector<byte_track::BYTETracker::STrackPtr> byte_track::BYTETracker::update(
         {
             const auto track = remain_det_stracks[unmatch_idx];
             if (track->getScore() < high_thresh_)
-            {
                 continue;
-            }
+
             track_id_count_++;
             track->activate(frame_id_, track_id_count_);
             current_tracked_stracks.push_back(track);
@@ -218,13 +205,13 @@ std::vector<byte_track::BYTETracker::STrackPtr> byte_track::BYTETracker::update(
     for (const auto &track : tracked_stracks_)
     {
         if (track->isActivated())
-        {
             output_stracks.push_back(track);
-        }
     }
 
     return output_stracks;
 }
+
+///
 std::vector<byte_track::BYTETracker::STrackPtr> byte_track::BYTETracker::jointStracks(const std::vector<STrackPtr> &a_tlist,
                                                                                       const std::vector<STrackPtr> &b_tlist) const
 {
@@ -247,6 +234,7 @@ std::vector<byte_track::BYTETracker::STrackPtr> byte_track::BYTETracker::jointSt
     return res;
 }
 
+///
 std::vector<byte_track::BYTETracker::STrackPtr> byte_track::BYTETracker::subStracks(const std::vector<STrackPtr> &a_tlist,
                                                                                     const std::vector<STrackPtr> &b_tlist) const
 {
@@ -260,9 +248,7 @@ std::vector<byte_track::BYTETracker::STrackPtr> byte_track::BYTETracker::subStra
     {
         const int &tid = b_tlist[i]->getTrackId();
         if (stracks.count(tid) != 0)
-        {
             stracks.erase(tid);
-        }
     }
 
     std::vector<STrackPtr> res;
@@ -275,6 +261,7 @@ std::vector<byte_track::BYTETracker::STrackPtr> byte_track::BYTETracker::subStra
     return res;
 }
 
+///
 void byte_track::BYTETracker::removeDuplicateStracks(const std::vector<STrackPtr> &a_stracks,
                                                      const std::vector<STrackPtr> &b_stracks,
                                                      std::vector<STrackPtr> &a_res,
@@ -288,9 +275,7 @@ void byte_track::BYTETracker::removeDuplicateStracks(const std::vector<STrackPtr
         for (size_t j = 0; j < ious[i].size(); j++)
         {
             if (ious[i][j] < 0.15)
-            {
                 overlapping_combinations.emplace_back(i, j);
-            }
         }
     }
 
@@ -300,32 +285,25 @@ void byte_track::BYTETracker::removeDuplicateStracks(const std::vector<STrackPtr
         const int timep = a_stracks[a_idx]->getFrameId() - a_stracks[a_idx]->getStartFrameId();
         const int timeq = b_stracks[b_idx]->getFrameId() - b_stracks[b_idx]->getStartFrameId();
         if (timep > timeq)
-        {
             b_overlapping[b_idx] = true;
-        }
         else
-        {
             a_overlapping[a_idx] = true;
-        }
     }
 
     for (size_t ai = 0; ai < a_stracks.size(); ai++)
     {
         if (!a_overlapping[ai])
-        {
             a_res.push_back(a_stracks[ai]);
-        }
     }
 
     for (size_t bi = 0; bi < b_stracks.size(); bi++)
     {
         if (!b_overlapping[bi])
-        {
             b_res.push_back(b_stracks[bi]);
-        }
     }
 }
 
+///
 void byte_track::BYTETracker::linearAssignment(const std::vector<std::vector<float>> &cost_matrix,
                                                const int &cost_matrix_size,
                                                const int &cost_matrix_size_size,
@@ -367,20 +345,17 @@ void byte_track::BYTETracker::linearAssignment(const std::vector<std::vector<flo
     for (size_t i = 0; i < colsol.size(); i++)
     {
         if (colsol[i] < 0)
-        {
             b_unmatched.push_back(i);
-        }
     }
 }
 
+///
 std::vector<std::vector<float>> byte_track::BYTETracker::calcIous(const std::vector<Rect<float>> &a_rect,
                                                                   const std::vector<Rect<float>> &b_rect) const
 {
     std::vector<std::vector<float>> ious;
     if (a_rect.size() * b_rect.size() == 0)
-    {
         return ious;
-    }
 
     ious.resize(a_rect.size());
     for (size_t i = 0; i < ious.size(); i++)
@@ -398,6 +373,7 @@ std::vector<std::vector<float>> byte_track::BYTETracker::calcIous(const std::vec
     return ious;
 }
 
+///
 std::vector<std::vector<float> > byte_track::BYTETracker::calcIouDistance(const std::vector<STrackPtr> &a_tracks,
                                                                           const std::vector<STrackPtr> &b_tracks) const
 {
@@ -428,6 +404,7 @@ std::vector<std::vector<float> > byte_track::BYTETracker::calcIouDistance(const 
     return cost_matrix;
 }
 
+///
 double byte_track::BYTETracker::execLapjv(const std::vector<std::vector<float>> &cost,
                                           std::vector<int> &rowsol,
                                           std::vector<int> &colsol,
@@ -453,9 +430,7 @@ double byte_track::BYTETracker::execLapjv(const std::vector<std::vector<float>> 
     else
     {
         if (!extend_cost)
-        {
             throw std::runtime_error("The `extend_cost` variable should set True");
-        }
     }
 
     if (extend_cost || cost_limit < std::numeric_limits<float>::max())
@@ -514,23 +489,10 @@ double byte_track::BYTETracker::execLapjv(const std::vector<std::vector<float>> 
         cost_c.assign(cost_c_extended.begin(), cost_c_extended.end());
     }
 
-    double **cost_ptr;
-    cost_ptr = new double *[sizeof(double *) * n];
-    for (int i = 0; i < n; i++)
-        cost_ptr[i] = new double[sizeof(double) * n];
+    std::vector<int> x_c(n, -1);
+    std::vector<int> y_c(n, 0);
 
-    for (int i = 0; i < n; i++)
-    {
-        for (int j = 0; j < n; j++)
-        {
-            cost_ptr[i][j] = cost_c[i][j];
-        }
-    }
-
-    int* x_c = new int[sizeof(int) * n];
-    int *y_c = new int[sizeof(int) * n];
-
-    int ret = lapjv_internal(n, cost_ptr, x_c, y_c);
+    int ret = lapjv_internal(n, cost_c, x_c, y_c);
     if (ret != 0)
     {
         throw std::runtime_error("The result of lapjv_internal() is invalid.");
@@ -561,9 +523,7 @@ double byte_track::BYTETracker::execLapjv(const std::vector<std::vector<float>> 
             for (size_t i = 0; i < rowsol.size(); i++)
             {
                 if (rowsol[i] != -1)
-                {
-                    opt += cost_ptr[i][rowsol[i]];
-                }
+                    opt += cost_c[i][rowsol[i]];
             }
         }
     }
@@ -571,17 +531,9 @@ double byte_track::BYTETracker::execLapjv(const std::vector<std::vector<float>> 
     {
         for (size_t i = 0; i < rowsol.size(); i++)
         {
-            opt += cost_ptr[i][rowsol[i]];
+            opt += cost_c[i][rowsol[i]];
         }
     }
-
-    for (int i = 0; i < n; i++)
-    {
-        delete[]cost_ptr[i];
-    }
-    delete[]cost_ptr;
-    delete[]x_c;
-    delete[]y_c;
 
     return opt;
 }
