@@ -2,10 +2,11 @@
 
 #include "Eigen/Dense"
 
-#include "ByteTrack/Rect.h"
-
 namespace byte_track
 {
+    template<typename T>
+    using Xyah = Eigen::Matrix<T, 1, 4, Eigen::RowMajor>;
+
 class KalmanFilter
 {
 public:

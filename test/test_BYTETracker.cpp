@@ -25,7 +25,7 @@ namespace
     const std::string VIDEO_FILE = "palace.mp4";
 
     // key: track_id, value: rect of tracking object
-    using BYTETrackerOut = std::map<size_t, byte_track::Rect<float>>;
+    using BYTETrackerOut = std::map<size_t, cv::Rect2f>;
 
     template <typename T>
     T get_data(const boost::property_tree::ptree &pt, const std::string &key)
@@ -58,11 +58,11 @@ namespace
             decltype(inputs_ref)::iterator itr = inputs_ref.find(frame_id);
             if (itr != inputs_ref.end())
             {
-                itr->second.emplace_back(byte_track::Rect(x, y, width, height), 0, prob);
+                itr->second.emplace_back(cv::Rect2f(x, y, width, height), 0, prob);
             }
             else
             {
-                std::vector<byte_track::Object> v(1, {byte_track::Rect(x, y, width, height), 0, prob});
+                std::vector<byte_track::Object> v(1, {cv::Rect2f(x, y, width, height), 0, prob});
                 inputs_ref.emplace_hint(inputs_ref.end(), frame_id, v);
             }
         }
@@ -85,12 +85,12 @@ namespace
             decltype(outputs_ref)::iterator itr = outputs_ref.find(frame_id);
             if (itr != outputs_ref.end())
             {
-                itr->second.emplace(track_id, byte_track::Rect<float>(x, y, width, height));
+                itr->second.emplace(track_id, cv::Rect2f(x, y, width, height));
             }
             else
             {
                 BYTETrackerOut v{
-                    {track_id, byte_track::Rect<float>(x, y, width, height)},
+                    {track_id, cv::Rect2f(x, y, width, height)},
                 };
                 outputs_ref.emplace_hint(outputs_ref.end(), frame_id, v);
             }
@@ -141,10 +141,10 @@ TEST(ByteTrack, BYTETracker)
                 const auto &rect = outputs_per_frame->getRect();
                 const auto &track_id = outputs_per_frame->getTrackId();
                 const auto &ref = outputs_ref[frame_id][track_id];
-                EXPECT_NEAR(ref.x(), rect.x(), EPS);
-                EXPECT_NEAR(ref.y(), rect.y(), EPS);
-                EXPECT_NEAR(ref.width(), rect.width(), EPS);
-                EXPECT_NEAR(ref.height(), rect.height(), EPS);
+                EXPECT_NEAR(ref.x, rect.x, EPS);
+                EXPECT_NEAR(ref.y, rect.y, EPS);
+                EXPECT_NEAR(ref.width, rect.width, EPS);
+                EXPECT_NEAR(ref.height, rect.height, EPS);
             }
         }
     }
@@ -210,7 +210,7 @@ void ShowTracks()
 				const auto& track_id = outputs_per_frame->getTrackId();
 				const auto& score = outputs_per_frame->getScore();
 
-				cv::Rect brect(rect.x(), rect.y(), rect.width(), rect.height());
+				cv::Rect brect(cvRound(rect.x), cvRound(rect.y), cvRound(rect.width), cvRound(rect.height));
 
 				cv::rectangle(frame, brect, cv::Scalar(255, 0, 255), 1);
 

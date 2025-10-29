@@ -350,8 +350,8 @@ void byte_track::BYTETracker::linearAssignment(const std::vector<std::vector<flo
 }
 
 ///
-std::vector<std::vector<float>> byte_track::BYTETracker::calcIous(const std::vector<Rect<float>> &a_rect,
-                                                                  const std::vector<Rect<float>> &b_rect) const
+std::vector<std::vector<float>> byte_track::BYTETracker::calcIous(const std::vector<cv::Rect2f> &a_rect,
+                                                                  const std::vector<cv::Rect2f> &b_rect) const
 {
     std::vector<std::vector<float>> ious;
     if (a_rect.size() * b_rect.size() == 0)
@@ -363,11 +363,28 @@ std::vector<std::vector<float>> byte_track::BYTETracker::calcIous(const std::vec
         ious[i].resize(b_rect.size());
     }
 
+    auto calcIoU = [](const cv::Rect2f& r1, const cv::Rect2f& r2)
+    {
+        const float box_area = (r2.width + 1) * (r2.height + 1);
+        const float iw = std::min(r1.x + r1.width, r2.x + r2.width) - std::max(r1.x, r2.x) + 1;
+        float iou = 0;
+        if (iw > 0)
+        {
+            const float ih = std::min(r1.y + r1.height, r2.y + r2.height) - std::max(r1.y, r2.y) + 1;
+            if (ih > 0)
+            {
+                const float ua = (r1.width + 1) * (r1.height + 1) + box_area - iw * ih;
+                iou = iw * ih / ua;
+            }
+        }
+        return iou;
+    };
+
     for (size_t bi = 0; bi < b_rect.size(); bi++)
     {
         for (size_t ai = 0; ai < a_rect.size(); ai++)
         {
-            ious[ai][bi] = b_rect[bi].calcIoU(a_rect[ai]);
+            ious[ai][bi] = calcIoU(b_rect[bi], a_rect[ai]);
         }
     }
     return ious;
@@ -377,7 +394,7 @@ std::vector<std::vector<float>> byte_track::BYTETracker::calcIous(const std::vec
 std::vector<std::vector<float> > byte_track::BYTETracker::calcIouDistance(const std::vector<STrackPtr> &a_tracks,
                                                                           const std::vector<STrackPtr> &b_tracks) const
 {
-    std::vector<byte_track::Rect<float>> a_rects, b_rects;
+    std::vector<cv::Rect2f> a_rects, b_rects;
     for (size_t i = 0; i < a_tracks.size(); i++)
     {
         a_rects.push_back(a_tracks[i]->getRect());

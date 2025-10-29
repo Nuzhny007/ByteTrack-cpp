@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ByteTrack/Rect.h"
 #include "ByteTrack/KalmanFilter.h"
 
 #include <cstddef>
+#include <opencv2/opencv.hpp>
 
 namespace byte_track
 {
@@ -17,10 +17,10 @@ enum class STrackState {
 class STrack
 {
 public:
-    STrack(const Rect<float>& rect, const float& score);
-    ~STrack();
+    STrack(const cv::Rect2f& rect, const float& score);
+    ~STrack() = default;
 
-    const Rect<float>& getRect() const;
+    const cv::Rect2f& getRect() const;
     const STrackState& getSTrackState() const;
 
     const bool& isActivated() const;
@@ -44,15 +44,15 @@ private:
     KalmanFilter::StateMean mean_;
     KalmanFilter::StateCov covariance_;
 
-    Rect<float> rect_;
-    STrackState state_;
+    cv::Rect2f rect_;
+    STrackState state_{ STrackState::New };
 
-    bool is_activated_;
-    float score_;
-    size_t track_id_;
-    size_t frame_id_;
-    size_t start_frame_id_;
-    size_t tracklet_len_;
+    bool is_activated_ = false;
+    float score_ = 0.f;
+    size_t track_id_ = 0;
+    size_t frame_id_ = 0;
+    size_t start_frame_id_ = 0;
+    size_t tracklet_len_ = 0;
 
     void updateRect();
 };
