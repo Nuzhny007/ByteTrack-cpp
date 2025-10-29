@@ -1,17 +1,18 @@
 #include "ByteTrack/KalmanFilter.h"
 
-#include <cstddef>
+namespace byte_track
+{
 
-byte_track::KalmanFilter::KalmanFilter(const float& std_weight_position,
-                                       const float& std_weight_velocity) :
+KalmanFilter::KalmanFilter(const float& std_weight_position,
+                           const float& std_weight_velocity) :
     std_weight_position_(std_weight_position),
     std_weight_velocity_(std_weight_velocity)
 {
     constexpr size_t ndim = 4;
-    constexpr float dt = 1;
+    constexpr float dt = 1.0f;
 
-    motion_mat_ = Eigen::MatrixXf::Identity(8, 8);
-    update_mat_ = Eigen::MatrixXf::Identity(4, 8);
+    motion_mat_ = cv::Matx<float, 8, 8>::eye();
+    update_mat_ = cv::Matx<float, 4, 8>::eye();
 
     for (size_t i = 0; i < ndim; i++)
     {
@@ -19,71 +20,89 @@ byte_track::KalmanFilter::KalmanFilter(const float& std_weight_position,
     }
 }
 
-void byte_track::KalmanFilter::initiate(StateMean &mean, StateCov &covariance, const DetectBox &measurement)
+void KalmanFilter::initiate(StateMean& mean, StateCov& covariance, const DetectBox& measurement)
 {
-    mean.block<1, 4>(0, 0) = measurement.block<1, 4>(0, 0);
-    mean.block<1, 4>(0, 4) = Eigen::Vector4f::Zero();
+    for (int i = 0; i < 4; i++)
+    {
+        mean(0, i) = measurement(0, i);
+        mean(0, i + 4) = 0.0f;
+    }
 
-    StateMean std;
-    std(0) = 2 * std_weight_position_ * measurement[3];
-    std(1) = 2 * std_weight_position_ * measurement[3];
-    std(2) = 1e-2;
-    std(3) = 2 * std_weight_position_ * measurement[3];
-    std(4) = 10 * std_weight_velocity_ * measurement[3];
-    std(5) = 10 * std_weight_velocity_ * measurement[3];
-    std(6) = 1e-5;
-    std(7) = 10 * std_weight_velocity_ * measurement[3];
+	StateMean std(
+		2 * std_weight_position_ * measurement(3),
+		2 * std_weight_position_ * measurement(3),
+		1e-2f,
+		2 * std_weight_position_ * measurement(3),
+		10 * std_weight_velocity_ * measurement(3),
+		10 * std_weight_velocity_ * measurement(3),
+		1e-5f,
+		10 * std_weight_velocity_ * measurement(3));
 
-    StateMean tmp = std.array().square();
-    covariance = tmp.asDiagonal();
+    covariance = StateCov::zeros();
+    for (int i = 0; i < 8; i++)
+    {
+        covariance(i, i) = std(i) * std(i);
+    }
 }
 
-void byte_track::KalmanFilter::predict(StateMean &mean, StateCov &covariance)
+void KalmanFilter::predict(StateMean& mean, StateCov& covariance)
 {
-    StateMean std;
-    std(0) = std_weight_position_ * mean(3);
-    std(1) = std_weight_position_ * mean(3);
-    std(2) = 1e-2;
-    std(3) = std_weight_position_ * mean(3);
-    std(4) = std_weight_velocity_ * mean(3);
-    std(5) = std_weight_velocity_ * mean(3);
-    std(6) = 1e-5;
-    std(7) = std_weight_velocity_ * mean(3);
+	StateMean std(
+		std_weight_position_ * mean(3),
+		std_weight_position_ * mean(3),
+		1e-2f,
+		std_weight_position_ * mean(3),
+		std_weight_velocity_ * mean(3),
+		std_weight_velocity_ * mean(3),
+		1e-5f,
+		std_weight_velocity_ * mean(3));
 
-    StateMean tmp = std.array().square();
-    StateCov motion_cov = tmp.asDiagonal();
+    StateCov motion_cov = StateCov::zeros();
+    for (int i = 0; i < 8; i++)
+    {
+        motion_cov(i, i) = std(i) * std(i);
+    }
 
-    mean = motion_mat_ * mean.transpose();
-    covariance = motion_mat_ * covariance * (motion_mat_.transpose()) + motion_cov;
+    StateMean new_mean = mean * motion_mat_.t();
+    mean = new_mean;
+    
+    covariance = motion_mat_ * covariance * motion_mat_.t() + motion_cov;
 }
 
-void byte_track::KalmanFilter::update(StateMean &mean, StateCov &covariance, const DetectBox &measurement)
+void KalmanFilter::update(StateMean& mean, StateCov& covariance, const DetectBox& measurement)
 {
     StateHMean projected_mean;
     StateHCov projected_cov;
     project(projected_mean, projected_cov, mean, covariance);
 
-    Eigen::Matrix<float, 4, 8> B = (covariance * (update_mat_.transpose())).transpose();
-    Eigen::Matrix<float, 8, 4> kalman_gain = (projected_cov.llt().solve(B)).transpose();
-    Eigen::Matrix<float, 1, 4> innovation = measurement - projected_mean;
+    cv::Matx<float, 4, 8> B = (covariance * update_mat_.t()).t();
 
-    const auto tmp = innovation * (kalman_gain.transpose());
-    mean = (mean.array() + tmp.array()).matrix();
-    covariance = covariance - kalman_gain * projected_cov * (kalman_gain.transpose());
+    cv::Matx<float, 4, 8> kalman_gain;
+    cv::solve(projected_cov, B, kalman_gain, cv::DECOMP_CHOLESKY);
+
+    StateHMean innovation = measurement - projected_mean;
+
+    StateMean tmp = innovation * kalman_gain;
+    mean = mean + tmp;
+    covariance = covariance - kalman_gain.t() * projected_cov * kalman_gain;
 }
 
-void byte_track::KalmanFilter::project(StateHMean &projected_mean, StateHCov &projected_covariance,
-                                       const StateMean& mean, const StateCov& covariance)
+void KalmanFilter::project(StateHMean& projected_mean, StateHCov& projected_covariance,
+                           const StateMean& mean, const StateCov& covariance)
 {
-    DetectBox std;
-    std << std_weight_position_ * mean(3),
-           std_weight_position_ * mean(3),
-           1e-1,
-           std_weight_position_ * mean(3);
+	DetectBox std(
+		std_weight_position_ * mean(3),
+		std_weight_position_ * mean(3),
+		1e-1f,
+		std_weight_position_ * mean(3));
 
-    projected_mean = update_mat_ * mean.transpose();
-    projected_covariance = update_mat_ * covariance * (update_mat_.transpose());
+    projected_mean = (update_mat_ * mean.t()).t();
+    projected_covariance = update_mat_ * covariance * update_mat_.t();
 
-    Eigen::Matrix<float, 4, 4> diag = std.asDiagonal();
-    projected_covariance += diag.array().square().matrix();
+    for (int i = 0; i < 4; i++)
+    {
+        projected_covariance(i, i) += std(i) * std(i);
+    }
+}
+
 }

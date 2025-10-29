@@ -511,9 +511,7 @@ double byte_track::BYTETracker::execLapjv(const std::vector<std::vector<float>> 
 
     int ret = lapjv_internal(n, cost_c, x_c, y_c);
     if (ret != 0)
-    {
         throw std::runtime_error("The result of lapjv_internal() is invalid.");
-    }
 
     double opt = 0.0;
 

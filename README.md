@@ -13,7 +13,7 @@ C++ implementation of ByteTrack that does not include an object detection algori
 
 ## Dependencies
 
-- Eigen 3.3
+- OpenCV 4.x
 - C++ compiler with C++17 or higher support
 - CMake 3.14 or higher
 - GoogleTest 1.10 or higher (Only tests)
@@ -35,18 +35,6 @@ mkdir build && cd build
 cmake .. -DBUILD_BYTETRACK_TEST=ON
 make
 ctest --verbose
-```
-
-## Tips
-
-You can use docker container to build and test the implementation.
-
-```shell
-docker build . -t bytetrack-cpp:latest
-docker run -ti --rm \
-           -v ${PWD}:/usr/src/app \
-           -w /usr/src/app \
-           bytetrack-cpp:latest
 ```
 
 ## License

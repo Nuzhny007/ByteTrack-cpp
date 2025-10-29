@@ -210,8 +210,10 @@ void ShowTracks()
 				const auto& track_id = outputs_per_frame->getTrackId();
 				const auto& score = outputs_per_frame->getScore();
 
-				cv::Rect brect(cvRound(rect.x), cvRound(rect.y), cvRound(rect.width), cvRound(rect.height));
+                //const auto& ref = outputs_ref[frame_id][track_id];
+                //cv::rectangle(frame, ref, cv::Scalar(0, 255, 0), 2);
 
+				cv::Rect brect(cvRound(rect.x), cvRound(rect.y), cvRound(rect.width), cvRound(rect.height));
 				cv::rectangle(frame, brect, cv::Scalar(255, 0, 255), 1);
 
 				std::string label = std::to_string(track_id) + " " + std::to_string(score);

@@ -56,12 +56,14 @@ const size_t& byte_track::STrack::getTrackletLength() const
     return tracklet_len_;
 }
 
-byte_track::Xyah<float> GetXyah(const cv::Rect2f& rect)
+byte_track::KalmanFilter::DetectBox GetXyah(const cv::Rect2f& rect)
 {
-	return { rect.x + rect.width / 2.f,
-		rect.y + rect.height / 2.f,
-		rect.width / rect.height,
-		rect.height, };
+    return byte_track::KalmanFilter::DetectBox(
+        rect.x + rect.width / 2.f,
+        rect.y + rect.height / 2.f,
+        rect.width / rect.height,
+        rect.height
+    );
 }
 
 void byte_track::STrack::activate(const size_t& frame_id, const size_t& track_id)
@@ -99,7 +101,7 @@ void byte_track::STrack::reActivate(const STrack &new_track, const size_t &frame
 void byte_track::STrack::predict()
 {
     if (state_ != STrackState::Tracked)
-        mean_[7] = 0;
+        mean_(7) = 0;
 
     kalman_filter_.predict(mean_, covariance_);
 }
@@ -129,8 +131,8 @@ void byte_track::STrack::markAsRemoved()
 
 void byte_track::STrack::updateRect()
 {
-    rect_.width = mean_[2] * mean_[3];
-    rect_.height = mean_[3];
-    rect_.x = mean_[0] - rect_.width / 2.f;
-    rect_.y = mean_[1] - rect_.height / 2.f;
+    rect_.width = mean_(2) * mean_(3);
+    rect_.height = mean_(3);
+    rect_.x = mean_(0) - rect_.width / 2.f;
+    rect_.y = mean_(1) - rect_.height / 2.f;
 }
